@@ -8,10 +8,6 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 import cv2
 import tensorflow as tf
 
-gpu_devices = tf.config.experimental.list_physical_devices('GPU')
-if any(gpu_devices):
-    tf.config.experimental.set_memory_growth(gpu_devices[0], True)
-
 from doctr.io import DocumentFile
 from doctr.models import ocr_predictor
 from doctr.utils.visualization import visualize_page
@@ -19,6 +15,16 @@ from doctr.utils.visualization import visualize_page
 DET_ARCHS = ["db_resnet50", "db_mobilenet_v3_large"]
 RECO_ARCHS = ["crnn_vgg16_bn", "crnn_mobilenet_v3_small", "master", "sar_resnet31"]
 
+# Load the OCR model only once
+predictor = None
+
+def load_ocr_model():
+    global predictor
+    if predictor is None:
+        gpu_devices = tf.config.experimental.list_physical_devices('GPU')
+        if any(gpu_devices):
+            tf.config.experimental.set_memory_growth(gpu_devices[0], True)
+        predictor = ocr_predictor(det_arch, reco_arch, pretrained=True)
 
 def main():
 
@@ -26,7 +32,7 @@ def main():
     st.set_page_config(layout="wide")
 
     # Designing the interface
-        st.title("Developed By Azarinvest")
+    st.title("Developed By Azarinvest")
     # For newline
     st.write('\n')
     #
@@ -70,8 +76,7 @@ def main():
             st.sidebar.write("Please upload a document")
 
         else:
-            with st.spinner('Loading model...'):
-                predictor = ocr_predictor(det_arch, reco_arch, pretrained=True)
+            load_ocr_model()
 
             with st.spinner('Analyzing...'):
 
@@ -103,7 +108,6 @@ def main():
                 for i in page_export['blocks']:
                     for w in i['lines']:
                         st.write(w['words'][0]['value'])
-                       
 
 
 if __name__ == '__main__':
